@@ -1,0 +1,6 @@
+{
+  "name": "TrendSell",
+  "description": "Modern premium clothing marketplace with a clean minimalist design, featuring user boutique uploads, stories, and secure admin checkpoints.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

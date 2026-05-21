@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Information about secondary marketplace sellers and buyers.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique user ID from Firebase Auth" },
+        "name": { "type": "string", "description": "Display name of the user" },
+        "email": { "type": "string", "description": "User email address" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User privilege role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account registration timestamp" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Product": {
+      "title": "Product Listing",
+      "description": "Clothing and accessories listing created by users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product ID" },
+        "title": { "type": "string", "description": "Full display title of the product" },
+        "price": { "type": "number", "description": "Price in Indian Rupees (INR)" },
+        "quantity": { "type": "number", "description": "Available stock pieces" },
+        "description": { "type": "string", "description": "Markdown description of wear and condition" },
+        "category": { "type": "string", "description": "Category slug" },
+        "images": { "type": "array", "description": "List of image URLs or base64 data" },
+        "sellerId": { "type": "string", "description": "User ID of the seller" },
+        "sellerName": { "type": "string", "description": "Seller display name" },
+        "sellerPhone": { "type": "string", "description": "Seller WhatsApp linkable phone number" },
+        "likes": { "type": "number", "description": "Counter for likes" },
+        "likedBy": { "type": "array", "description": "Array of user IDs who liked this" },
+        "featured": { "type": "boolean", "description": "Set to true if product is pinned in hero or trending grids" },
+        "approved": { "type": "boolean", "description": "Set to true if listing is vetted by administrator" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "title", "price", "quantity", "category", "sellerId", "sellerName", "sellerPhone", "approved"]
+    },
+    "Status": {
+      "title": "Fashion Story Status",
+      "description": "Temporary lookbooks uploaded by fashion sellers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique status story ID" },
+        "userId": { "type": "string", "description": "ID of status author" },
+        "userName": { "type": "string", "description": "Author display name" },
+        "imageUrl": { "type": "string", "description": "Visual slide image" },
+        "caption": { "type": "string", "description": "Optional short description" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Upload timestamp" }
+      },
+      "required": ["id", "userId", "userName", "imageUrl", "createdAt"]
+    },
+    "Category": {
+      "title": "Fashion Category",
+      "description": "Category for sorting fashion listings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Slug/id of category" },
+        "name": { "type": "string", "description": "Visual label of category" }
+      },
+      "required": ["id", "name"]
+    },
+    "Banner": {
+      "title": "Homepage Banner",
+      "description": "Admin uploaded promotional banners.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Banner identifier" },
+        "imageUrl": { "type": "string", "description": "Wide banner dynamic slide image" },
+        "title": { "type": "string", "description": "Banner main text highlight" },
+        "link": { "type": "string", "description": "Action URL when banner is clicked" }
+      },
+      "required": ["id", "imageUrl", "title"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores individual user metadata, role assignments, and seller statistics."
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Individual listings approved or rejected by admin."
+    },
+    "/statuses/{statusId}": {
+      "schema": "Status",
+      "description": "Ephemeral seller lifestyle statuses/stories."
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Search taxonomies for the storefront."
+    },
+    "/banners/{bannerId}": {
+      "schema": "Banner",
+      "description": "Banners dynamically active on top carousel slider."
+    }
+  }
+}
