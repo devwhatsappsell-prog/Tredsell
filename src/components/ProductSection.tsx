@@ -188,7 +188,6 @@ export const ProductSection: React.FC = () => {
                 </div>
 
                 <div className="p-5 mt-auto relative z-10">
-                  <span className="text-[8px] font-black text-red-500 uppercase tracking-widest block">{p.sellerName}</span>
                   <h4 className="text-base font-black uppercase tracking-tight text-white font-display mt-0.5">{p.title}</h4>
                   <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/10">
                     <span className="text-sm font-black">₹{p.price}</span>
@@ -297,7 +296,6 @@ export const ProductSection: React.FC = () => {
                   {/* Card text details */}
                   <div className="p-3 bg-white border-t border-zinc-100 flex-1 flex flex-col justify-between">
                     <div>
-                      <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">{product.sellerName}</p>
                       <h4 className="text-xs font-bold text-zinc-900 mt-1 line-clamp-1 group-hover:text-red-600 transition-colors uppercase tracking-tight">
                         {product.title}
                       </h4>
@@ -319,27 +317,28 @@ export const ProductSection: React.FC = () => {
       {/* 4. DETAILS VIEW & PHOTO LIGHTBOX DETAILED DRAWER */}
       <AnimatePresence>
         {activeLightboxProduct && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
             <div className="absolute inset-0" onClick={() => setActiveLightboxProduct(null)} />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white max-w-3xl w-full p-6 md:p-8 relative grid grid-cols-1 md:grid-cols-12 gap-8 z-10 border border-zinc-200"
+              className="bg-white max-w-[95%] sm:max-w-xl md:max-w-3xl w-full p-4 sm:p-6 md:p-8 relative grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 z-10 border border-zinc-200 rounded-lg shadow-2xl max-h-[92vh] overflow-y-auto"
             >
               
               {/* Close Button */}
               <button 
                 onClick={() => setActiveLightboxProduct(null)}
-                className="absolute top-4 right-4 text-zinc-400 hover:text-black hover:bg-zinc-100 p-1.5 transition-colors"
+                className="absolute top-3 right-3 text-zinc-500 hover:text-black hover:bg-zinc-100 p-1.5 transition-colors z-20 rounded-full bg-white/80 shadow-sm"
+                title="Close"
               >
                 <X className="w-5 h-5" />
               </button>
 
               {/* Photo Display Col */}
-              <div className="md:col-span-6 flex flex-col space-y-3">
-                <div className="aspect-[3/4] bg-zinc-50 relative overflow-hidden ring-1 ring-zinc-100">
+              <div className="md:col-span-6 flex flex-col space-y-2">
+                <div className="aspect-[4/5] md:aspect-[3/4] max-h-[220px] md:max-h-none bg-zinc-50 relative overflow-hidden ring-1 ring-zinc-100 rounded">
                   <img 
                     src={activeLightboxProduct.images[lightboxActiveIndex]} 
                     alt="" 
@@ -351,13 +350,13 @@ export const ProductSection: React.FC = () => {
                     <>
                       <button 
                         onClick={() => setLightboxActiveIndex(idx => (idx > 0 ? idx - 1 : activeLightboxProduct.images.length - 1))}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 bg-white/90 p-1.5 hover:bg-white text-black"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 p-1 hover:bg-white text-black rounded shadow"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => setLightboxActiveIndex(idx => (idx < activeLightboxProduct.images.length - 1 ? idx + 1 : 0))}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-white/90 p-1.5 hover:bg-white text-black"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 p-1 hover:bg-white text-black rounded shadow"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -367,12 +366,12 @@ export const ProductSection: React.FC = () => {
 
                 {/* Small indicator dots/images */}
                 {activeLightboxProduct.images.length > 1 && (
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1.5 justify-center md:justify-start">
                     {activeLightboxProduct.images.map((img, i) => (
                       <button 
                         key={i} 
                         onClick={() => setLightboxActiveIndex(i)}
-                        className={`w-12 h-14 border overflow-hidden ${lightboxActiveIndex === i ? 'border-red-600 ring-1 ring-red-600' : 'border-zinc-200 opacity-60'}`}
+                        className={`w-10 h-12 border overflow-hidden rounded ${lightboxActiveIndex === i ? 'border-red-600 ring-1 ring-red-600' : 'border-zinc-200 opacity-60'}`}
                       >
                         <img src={img} alt="" className="w-full h-full object-cover grayscale" />
                       </button>
@@ -382,34 +381,46 @@ export const ProductSection: React.FC = () => {
               </div>
 
               {/* Specs & Description Col */}
-              <div className="md:col-span-6 flex flex-col justify-between">
+              <div className="md:col-span-6 flex flex-col justify-between space-y-4">
                 <div>
-                  <span className="text-[10px] font-black text-red-600 uppercase tracking-widest bg-red-50/50 py-1 px-2.5 inline-block mb-3.5">
+                  <span className="text-[9px] font-black text-red-600 uppercase tracking-widest bg-red-50/50 py-0.5 px-2 inline-block mb-2">
                     {activeLightboxProduct.category}
                   </span>
-                  <h3 className="text-xl font-bold font-display uppercase tracking-tight text-zinc-950">
+                  <h3 className="text-lg md:text-xl font-bold font-display uppercase tracking-tight text-zinc-950">
                     {activeLightboxProduct.title}
                   </h3>
-                  <p className="text-sm font-black text-zinc-950 mt-1.5 font-display">₹{activeLightboxProduct.price}</p>
+                  <p className="text-base font-black text-zinc-950 mt-1 font-display">₹{activeLightboxProduct.price}</p>
                   
-                  <div className="space-y-1.5 mt-5 pt-4 border-t border-zinc-100 text-xs">
-                    <p className="text-zinc-500 font-mono">SELLER: <strong className="text-zinc-900">{activeLightboxProduct.sellerName}</strong></p>
-                    <p className="text-zinc-500 font-mono">STOCK pieces: <strong className="text-zinc-900">{activeLightboxProduct.quantity} Left</strong></p>
-                    <p className="text-zinc-500 font-mono">WHATSAPP CONTACT: <strong className="text-zinc-900">{activeLightboxProduct.sellerPhone}</strong></p>
+                  <div className="space-y-1 mt-3 pt-3 border-t border-zinc-100 text-xs">
+                    <p className="text-zinc-500 font-mono">STOCK pieces: <strong className="text-zinc-900">{activeLightboxProduct.quantity} Left / सिर्फ़ {activeLightboxProduct.quantity} पीस उपलब्ध</strong></p>
                   </div>
 
-                  <div className="mt-5">
-                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Description & Condition</h5>
-                    <div className="text-xs text-zinc-700 leading-relaxed font-serif bg-zinc-50 p-3.5 border-l-2 border-zinc-300">
+                  <div className="mt-3">
+                    <h5 className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Description & Condition</h5>
+                    <div className="text-xs text-zinc-700 leading-relaxed font-serif bg-zinc-50 p-2.5 border-l-2 border-zinc-300">
                       {activeLightboxProduct.description || 'Verified organic, clean clothing listed for instant buyouts.'}
+                    </div>
+                  </div>
+
+                  {/* 100% Exchange Offer (No returns) */}
+                  <div className="mt-3">
+                    <h5 className="text-[9px] font-bold uppercase tracking-wider text-green-700 mb-1 flex items-center space-x-1">
+                      <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
+                      <span>100% Exchange Offer Available / एक्सचेंज ऑफर</span>
+                    </h5>
+                    <div className="text-xs text-green-800 leading-relaxed font-sans bg-green-50/70 p-2.5 border-l-2 border-green-600 rounded-r-sm">
+                      <p className="font-bold text-[11px]">✨ No Return - Easy Exchange Only / रिटर्न नहीं, पर आसान एक्सचेंज!</p>
+                      <p className="mt-0.5 text-[10px] text-zinc-600 leading-snug">
+                        Agar aapko product pasand nahi aata ya size issue hota hai, toh aap isko <strong>7 din ke andar exchange (badal)</strong> karwa sakte hain.
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row gap-3">
+                <div className="pt-4 border-t border-zinc-100 flex flex-col sm:flex-row gap-2">
                   <button 
                     onClick={(e) => handleWhatsAppRedirect(e, activeLightboxProduct)}
-                    className="flex-1 bg-[#25D366] text-white hover:bg-[#20ba5a] py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-2"
+                    className="flex-1 bg-[#25D366] text-white hover:bg-[#20ba5a] py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-2 rounded"
                   >
                     <MessageCircle className="w-4 h-4 fill-white text-[#25D366]" />
                     <span>Purchase via WhatsApp</span>
@@ -420,10 +431,10 @@ export const ProductSection: React.FC = () => {
                       e.stopPropagation();
                       likeProduct(activeLightboxProduct.id);
                     }}
-                    className={`px-4 py-3 border flex items-center justify-center space-x-1 hover:border-black transition-colors ${user && Array.isArray(activeLightboxProduct.likedBy) && activeLightboxProduct.likedBy.includes(user.uid) ? 'text-red-600 border-red-200 bg-red-50/20' : 'text-zinc-500 border-zinc-200'}`}
+                    className={`px-3 py-2.5 border flex items-center justify-center space-x-1 hover:border-black transition-colors rounded ${user && Array.isArray(activeLightboxProduct.likedBy) && activeLightboxProduct.likedBy.includes(user.uid) ? 'text-red-600 border-red-200 bg-red-50/20' : 'text-zinc-500 border-zinc-200'}`}
                   >
                     <Heart className="w-4 h-4" fill={user && Array.isArray(activeLightboxProduct.likedBy) && activeLightboxProduct.likedBy.includes(user.uid) ? 'currentColor' : 'none'} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{activeLightboxProduct.likes} Likes</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">{activeLightboxProduct.likes} Likes</span>
                   </button>
                 </div>
 

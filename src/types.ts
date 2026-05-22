@@ -6,7 +6,7 @@ export interface UserProfile {
   uid: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'seller';
   createdAt: string;
 }
 

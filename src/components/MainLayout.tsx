@@ -91,6 +91,17 @@ export const MainLayout: React.FC = () => {
               Shop
             </button>
             
+            <a 
+              href="https://wa.me/919643281807?text=Hello%20TrendSell!%20%F0%9F%91%8B%20I%20am%20interested%20in%20your%20products%20and%20fashion%20catalog.%20Let's%20connect!%20%E2%9C%A8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-green-600 text-zinc-500 transition-colors flex items-center space-x-1.5"
+              title="Chat with support on WhatsApp"
+            >
+              <Phone className="w-3.5 h-3.5 text-green-500" />
+              <span>WhatsApp / व्हाट्सएप</span>
+            </a>
+
             <button 
               onClick={() => {
                 if (!user) setAuthModalOpen(true);
@@ -123,22 +134,14 @@ export const MainLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Sell Button */}
-          {user ? (
+          {/* Sell Button: Only shown for administration/sellers */}
+          {user && (userProfile?.role === 'admin' || userProfile?.role === 'seller') && (
             <button 
               onClick={() => setUploadModalOpen(true)}
               className="bg-black hover:bg-zinc-900 active:scale-95 text-white py-2 px-5 text-xs font-bold uppercase tracking-widest transition-all shadow-sm hidden md:flex items-center space-x-1.5"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Upload Product</span>
-            </button>
-          ) : (
-            <button 
-              onClick={() => setAuthModalOpen(true)}
-              className="bg-red-600 hover:bg-red-700 active:scale-95 text-white py-2 px-5 text-xs font-bold uppercase tracking-widest transition-all shadow-sm hidden md:flex items-center space-x-1.5"
-            >
-              <UserIcon className="w-3.5 h-3.5" />
-              <span>Login to Sell</span>
             </button>
           )}
 
@@ -215,12 +218,14 @@ export const MainLayout: React.FC = () => {
                   </p>
 
                   <div className="mt-3.5 md:mt-6 flex space-x-3">
-                    <button 
-                      onClick={() => setUploadModalOpen(true)}
-                      className="bg-white hover:bg-zinc-150 active:scale-95 text-black px-4 sm:px-6 py-2 text-[9px] sm:text-xs font-black uppercase tracking-widest transition-colors duration-200"
-                    >
-                      SELL APPAREL
-                    </button>
+                    {user && (userProfile?.role === 'admin' || userProfile?.role === 'seller') && (
+                      <button 
+                        onClick={() => setUploadModalOpen(true)}
+                        className="bg-white hover:bg-zinc-150 active:scale-95 text-black px-4 sm:px-6 py-2 text-[9px] sm:text-xs font-black uppercase tracking-widest transition-colors duration-200"
+                      >
+                        SELL APPAREL
+                      </button>
+                    )}
                     <button 
                       onClick={() => {
                         const target = document.getElementById('listings-head');
@@ -325,58 +330,68 @@ export const MainLayout: React.FC = () => {
                 </button>
               </div>
 
-              {/* User Listings Statistics Summary */}
-              <div className="grid grid-cols-2 gap-4 mb-8 text-center text-zinc-900">
-                <div className="bg-zinc-50 p-4 border border-zinc-100">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Your Approved designs</span>
-                  <span className="text-3xl font-black font-display mt-1 block">
-                    {products.filter(p => p.sellerId === user?.uid && p.approved).length}
-                  </span>
-                </div>
-                <div className="bg-zinc-50 p-4 border border-zinc-100">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Awaiting Moderation</span>
-                  <span className="text-3xl font-black font-display text-red-600 mt-1 block">
-                    {products.filter(p => p.sellerId === user?.uid && !p.approved).length}
-                  </span>
-                </div>
-              </div>
-
-              {/* Individual user store manager */}
-              <div>
-                <h4 className="text-[10px] font-black tracking-widest text-zinc-400 uppercase mb-4">My Store Catalog</h4>
-                
-                {products.filter(p => p.sellerId === user?.uid).length === 0 ? (
-                  <div className="border border-dashed border-zinc-200 py-8 text-center text-zinc-500">
-                    <p className="text-xs">You have not submitted any apparel yet.</p>
-                    <button 
-                      onClick={() => setUploadModalOpen(true)}
-                      className="text-red-600 hover:underline hover:text-black font-bold uppercase tracking-wider text-[10px] mt-2 block mx-auto"
-                    >
-                      Post Your First Apparel
-                    </button>
+              {/* Only show listings stats and seller catalogs if they have admin or seller roles */}
+              {(userProfile?.role === 'admin' || userProfile?.role === 'seller') ? (
+                <>
+                  {/* User Listings Statistics Summary */}
+                  <div className="grid grid-cols-2 gap-4 mb-8 text-center text-zinc-900">
+                    <div className="bg-zinc-50 p-4 border border-zinc-100">
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block font-sans">Your Approved designs</span>
+                      <span className="text-3xl font-black font-display mt-1 block">
+                        {products.filter(p => p.sellerId === user?.uid && p.approved).length}
+                      </span>
+                    </div>
+                    <div className="bg-zinc-50 p-4 border border-zinc-100">
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block font-sans">Awaiting Moderation</span>
+                      <span className="text-3xl font-black font-display text-red-600 mt-1 block">
+                        {products.filter(p => p.sellerId === user?.uid && !p.approved).length}
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {products.filter(p => p.sellerId === user?.uid).map(p => (
-                      <div key={p.id} className="border border-zinc-100 p-3 flex justify-between items-center bg-zinc-50/50">
-                        <div className="flex items-center space-x-3.5">
-                          <img src={p.images[0]} alt="" className="w-10 h-12 object-cover bg-zinc-200 grayscale" />
-                          <div>
-                            <h5 className="font-bold text-xs">{p.title}</h5>
-                            <p className="text-[9px] text-zinc-400 uppercase font-bold">{p.category} • ₹{p.price}</p>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-[9px] font-bold py-0.5 px-2 rounded-full uppercase ${p.approved ? 'bg-green-100 text-green-800' : 'bg-red-50 text-red-700'}`}>
-                            {p.approved ? 'Live' : 'Pending Approval'}
-                          </span>
-                        </div>
+                  {/* Individual user store manager */}
+                  <div>
+                    <h4 className="text-[10px] font-black tracking-widest text-zinc-400 uppercase mb-4 font-sans">My Store Catalog</h4>
+                    
+                    {products.filter(p => p.sellerId === user?.uid).length === 0 ? (
+                      <div className="border border-dashed border-zinc-200 py-8 text-center text-zinc-500">
+                        <p className="text-xs">You have not submitted any apparel yet.</p>
+                        <button 
+                          onClick={() => setUploadModalOpen(true)}
+                          className="text-red-600 hover:underline hover:text-black font-bold uppercase tracking-wider text-[10px] mt-2 block mx-auto"
+                        >
+                          Post Your First Apparel
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="space-y-3">
+                        {products.filter(p => p.sellerId === user?.uid).map(p => (
+                          <div key={p.id} className="border border-zinc-100 p-3 flex justify-between items-center bg-zinc-50/50">
+                            <div className="flex items-center space-x-3.5">
+                              <img src={p.images[0]} alt="" className="w-10 h-12 object-cover bg-zinc-200 grayscale" />
+                              <div>
+                                <h5 className="font-bold text-xs">{p.title}</h5>
+                                <p className="text-[9px] text-zinc-400 uppercase font-bold">{p.category} • ₹{p.price}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                              <span className={`text-[9px] font-bold py-0.5 px-2 rounded-full uppercase ${p.approved ? 'bg-green-100 text-green-800' : 'bg-red-50 text-red-700'}`}>
+                                {p.approved ? 'Live' : 'Pending Approval'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <div className="border border-dashed border-zinc-200 py-10 text-center text-zinc-500 bg-zinc-50/50">
+                  <p className="text-xs font-bold font-serif">Welcome to your Premium Member Dashboard.</p>
+                  <p className="text-[10px] text-zinc-400 uppercase mt-1 tracking-wider">Browsing live designs and liking listings is active.</p>
+                </div>
+              )}
 
             </div>
           </div>
@@ -401,13 +416,13 @@ export const MainLayout: React.FC = () => {
                 <span className="text-red-500 font-bold uppercase tracking-wider">Contact Seller Support:</span>
               </div>
               <a 
-                href="mailto:devwhatsappsell@gmail.com" 
+                href="mailto:support@trendsell.com" 
                 className="flex items-center space-x-2.5 text-zinc-300 hover:text-white transition-colors py-1 group inline-flex"
               >
                 <span className="bg-zinc-900 p-1.5 rounded text-zinc-400 group-hover:text-red-500 group-hover:bg-zinc-800 transition-colors">
                   <Mail className="w-3.5 h-3.5" />
                 </span>
-                <span className="text-xs font-mono font-bold">devwhatsappsell@gmail.com</span>
+                <span className="text-xs font-mono font-bold">support@trendsell.com</span>
               </a>
               <br />
               <a 
@@ -451,16 +466,17 @@ export const MainLayout: React.FC = () => {
           <span className="text-[9px] font-black uppercase tracking-wider">Feed</span>
         </button>
 
-        <button 
-          onClick={() => {
-            if (!user) setAuthModalOpen(true);
-            else setUploadModalOpen(true);
-          }}
-          className="flex flex-col items-center flex-1 py-1.5 text-zinc-500 hover:text-red-600"
-        >
-          <Upload className="w-5 h-5 mb-0.5" />
-          <span className="text-[9px] font-black uppercase tracking-wider">Sell</span>
-        </button>
+        {userProfile?.role && (userProfile?.role === 'admin' || userProfile?.role === 'seller') && (
+          <button 
+            onClick={() => {
+              setUploadModalOpen(true);
+            }}
+            className="flex flex-col items-center flex-1 py-1.5 text-zinc-500 hover:text-red-600"
+          >
+            <Upload className="w-5 h-5 mb-0.5" />
+            <span className="text-[9px] font-black uppercase tracking-wider">Sell</span>
+          </button>
+        )}
 
         {userProfile?.role === 'admin' && (
           <button 
@@ -471,6 +487,17 @@ export const MainLayout: React.FC = () => {
             <span className="text-[9px] font-black uppercase tracking-wider text-red-600">Admin</span>
           </button>
         )}
+
+        <a 
+          href="https://wa.me/919643281807?text=Hello%20TrendSell!%20%F0%9F%91%8B%20I%20am%20interested%20in%20your%20products%20and%20fashion%20catalog.%20Let's%20connect!%20%E2%9C%A8"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center flex-1 py-1.5 text-zinc-500 hover:text-green-600 transition-colors"
+          title="WhatsApp Support"
+        >
+          <Phone className="w-5 h-5 mb-0.5 text-green-500 animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-wider text-green-600">WhatsApp</span>
+        </a>
 
         <button 
           onClick={() => {
@@ -490,7 +517,15 @@ export const MainLayout: React.FC = () => {
       {/* MODALS OVERLAYS portals */}
       <AnimatePresence>
         {authModalOpen && (
-          <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+          <AuthModal 
+            isOpen={authModalOpen} 
+            onClose={() => setAuthModalOpen(false)} 
+            onLoginSuccess={(emailVal) => {
+              if (emailVal === 'praveen@gmail.com' || emailVal === 'devwhatsappsell@gmail.com') {
+                setUploadModalOpen(true);
+              }
+            }}
+          />
         )}
       </AnimatePresence>
 

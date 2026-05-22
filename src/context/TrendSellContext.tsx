@@ -34,16 +34,15 @@ const INITIAL_CATEGORIES: Category[] = [
   { id: 'trending', name: 'Trending' },
   { id: 'menswear', name: 'Menswear' },
   { id: 'women', name: 'Women' },
-  { id: 'accessories', name: 'Accessories' },
-  { id: 'dev_db_verified', name: '🟢 DB Verification / डेटाबेस सत्यापन' }
+  { id: 'accessories', name: 'Accessories' }
 ];
 
 const INITIAL_BANNERS: Banner[] = [
   {
-    id: 'banner_verification',
-    imageUrl: 'https://images.unsplash.com/photo-1620121692029-d088224ddc74?auto=format&fit=crop&w=1200&q=80',
-    title: '🟢 DATABASE VERIFIED: devwhatsappsell@gmail.com CONTROL ACTIVE',
-    link: 'dev_db_verified'
+    id: 'banner_luxury_couture',
+    imageUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80',
+    title: 'LUXURY COUTURE 2026 COLLECTION',
+    link: 'trending'
   },
   {
     id: 'banner_1',
@@ -102,19 +101,19 @@ const INITIAL_STATUSES: StatusStory[] = [
 
 const INITIAL_PRODUCTS: Product[] = [
   {
-    id: 'prod_verified_dev_db',
-    title: '🟢 VERIFIED: Database Under devwhatsappsell Caretakers',
-    price: 99999,
-    quantity: 1,
-    description: 'This is a premium database identification and control item created exclusively to verify your active Firestore / local Sandbox control. Managed securely under: devwhatsappsell@gmail.com.',
-    category: 'dev_db_verified',
+    id: 'prod_luxe_trench',
+    title: 'Tailored Woolen Trench Coat',
+    price: 4800,
+    quantity: 2,
+    description: 'Tailored woolen-blend drape trench coat in deep slate grey. Perfect structured shoulders, double-breasted closing and deep utility waist-pockets.',
+    category: 'women',
     images: [
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=600&q=80'
     ],
-    sellerId: 'user_admin',
-    sellerName: 'Dev Admin (System)',
+    sellerId: 'user_luxe_vendor',
+    sellerName: 'Minimalist Store',
     sellerPhone: '919876543210',
-    likes: 999,
+    likes: 42,
     likedBy: [],
     featured: true,
     approved: true,
@@ -263,9 +262,9 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const profileSnap = await getDoc(profileRef);
             if (profileSnap.exists()) {
               const loadedProfile = profileSnap.data() as UserProfile;
-              // Enforce role consistency for developer
-              const currentEmail = fbUser.email || loadedProfile.email || storedEmail;
-              if (currentEmail && currentEmail.toLowerCase().trim() === 'devwhatsappsell@gmail.com') {
+              // Enforce role consistency for developer & seller
+              const currentEmail = (fbUser.email || loadedProfile.email || storedEmail || '').toLowerCase().trim();
+              if (currentEmail === 'devwhatsappsell@gmail.com') {
                 if (loadedProfile.role !== 'admin') {
                   loadedProfile.role = 'admin';
                   try {
@@ -274,9 +273,18 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     console.warn("Could not sync admin role to Firestore users collection:", e);
                   }
                 }
+              } else if (currentEmail === 'praveen@gmail.com') {
+                if (loadedProfile.role !== 'seller') {
+                  loadedProfile.role = 'seller';
+                  try {
+                    await setDoc(profileRef, { role: 'seller' }, { merge: true });
+                  } catch (e) {
+                    console.warn("Could not sync seller role to Firestore users collection:", e);
+                  }
+                }
               } else {
-                // Erase admin role accidentally given to customers
-                if (loadedProfile.role === 'admin') {
+                // Erase admin or seller roles accidentally given to standard customers
+                if (loadedProfile.role === 'admin' || loadedProfile.role === 'seller') {
                   loadedProfile.role = 'user';
                   try {
                     await setDoc(profileRef, { role: 'user' }, { merge: true });
@@ -288,11 +296,13 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               setUserProfile(loadedProfile);
             } else {
               // Create user profile
-              // Check if email is dev's email for auto admin mapping
-              const finalEmail = storedEmail || fbUser.email || 'seller@trendsell.com';
+              // Check if email is dev or seller email for auto role mapping
+              const finalEmailPre = storedEmail || fbUser.email || 'seller@trendsell.com';
+              const finalEmail = finalEmailPre.toLowerCase().trim();
               const finalName = storedName || fbUser.displayName || 'Marketplace Seller';
-              const isDev = finalEmail.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
-              const role = isDev ? 'admin' : 'user';
+              const isDev = finalEmail === 'devwhatsappsell@gmail.com';
+              const isPraveen = finalEmail === 'praveen@gmail.com';
+              const role = isDev ? 'admin' : (isPraveen ? 'seller' : 'user');
               const newProfile: UserProfile = {
                 uid: fbUser.uid,
                 name: finalName,
@@ -310,14 +320,16 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           } catch (err) {
             console.error("Error fetching user profile from firestore:", err);
             // Fallback user profile
-            const finalEmail = storedEmail || fbUser.email || '';
+            const finalEmailPre = storedEmail || fbUser.email || '';
+            const finalEmail = finalEmailPre.toLowerCase().trim();
             const finalName = storedName || fbUser.displayName || 'Seller';
-            const isDev = finalEmail.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
+            const isDev = finalEmail === 'devwhatsappsell@gmail.com';
+            const isPraveen = finalEmail === 'praveen@gmail.com';
             setUserProfile({
               uid: fbUser.uid,
               name: finalName,
               email: finalEmail,
-              role: isDev ? 'admin' : 'user',
+              role: isDev ? 'admin' : (isPraveen ? 'seller' : 'user'),
               createdAt: new Date().toISOString()
             });
           }
@@ -549,9 +561,14 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const loginAnonymously = async (customName = 'Anonymous Fashionista', email = 'seller@trendsell.com') => {
-    const isDevAdmin = email.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
-    localStorage.setItem('ts_anon_email', email);
-    localStorage.setItem('ts_anon_name', customName);
+    const cleanEmail = email.toLowerCase().trim();
+    const isDevAdmin = cleanEmail === 'devwhatsappsell@gmail.com';
+    const isSeller = cleanEmail === 'praveen@gmail.com';
+    const resolvedRole = isDevAdmin ? 'admin' : (isSeller ? 'seller' : 'user');
+    const resolvedName = isDevAdmin ? 'Dev Admin' : (isSeller ? 'Praveen' : customName);
+
+    localStorage.setItem('ts_anon_email', cleanEmail);
+    localStorage.setItem('ts_anon_name', resolvedName);
 
     if (isFirebaseConfigured) {
       try {
@@ -560,9 +577,9 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const profileRef = doc(db, 'users', fbUser.uid);
         const newProfile: UserProfile = {
           uid: fbUser.uid,
-          name: isDevAdmin ? 'Dev Admin' : customName,
-          email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
-          role: isDevAdmin ? 'admin' : 'user',
+          name: resolvedName,
+          email: cleanEmail,
+          role: resolvedRole,
           createdAt: new Date().toISOString()
         };
         try {
@@ -576,16 +593,16 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.warn("Firebase Anonymous auth is disabled in Firebase console, falling back to instant sandbox path:", err);
         // Fallback to offline mock session for this email so login NEVER fails
         const mockUser = {
-          uid: isDevAdmin ? 'user_local_guest_admin' : 'user_local_fallback_' + Math.random().toString(36).substr(2, 5),
-          email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
-          displayName: isDevAdmin ? 'Dev Admin' : customName,
+          uid: isDevAdmin ? 'user_local_guest_admin' : (isSeller ? 'user_local_praveen' : 'user_local_fallback_' + Math.random().toString(36).substr(2, 5)),
+          email: cleanEmail,
+          displayName: resolvedName,
           isAnonymous: true
         };
         const mockProfile: UserProfile = {
           uid: mockUser.uid,
-          name: isDevAdmin ? 'Dev Admin' : customName,
-          email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
-          role: isDevAdmin ? 'admin' : 'user',
+          name: resolvedName,
+          email: cleanEmail,
+          role: resolvedRole,
           createdAt: new Date().toISOString()
         };
         setUser(mockUser);
@@ -595,16 +612,16 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } else {
       const mockUser = {
-        uid: isDevAdmin ? 'user_local_guest' : 'user_local_anon_' + Math.random().toString(36).substr(2, 5),
-        email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
-        displayName: isDevAdmin ? 'Dev Admin' : customName,
+        uid: isDevAdmin ? 'user_local_guest' : (isSeller ? 'user_local_praveen' : 'user_local_anon_' + Math.random().toString(36).substr(2, 5)),
+        email: cleanEmail,
+        displayName: resolvedName,
         isAnonymous: true
       };
       const mockProfile: UserProfile = {
         uid: mockUser.uid,
-        name: isDevAdmin ? 'Dev Admin' : customName,
-        email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
-        role: isDevAdmin ? 'admin' : 'user',
+        name: resolvedName,
+        email: cleanEmail,
+        role: resolvedRole,
         createdAt: new Date().toISOString()
       };
       setUser(mockUser);
@@ -636,10 +653,13 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const sellerId = auth.currentUser ? auth.currentUser.uid : (user?.uid || 'user_local_guest');
     const sellerName = auth.currentUser ? (auth.currentUser.displayName || userProfile?.name || 'Seller') : (userProfile?.name || 'Local Seller');
     
-    const isUserAdmin = 
+    const isUserAdminOrSeller = 
       (userProfile?.role === 'admin') || 
+      (userProfile?.role === 'seller') ||
       (auth.currentUser?.email?.toLowerCase().trim() === 'devwhatsappsell@gmail.com') ||
-      (user?.email?.toLowerCase().trim() === 'devwhatsappsell@gmail.com');
+      (user?.email?.toLowerCase().trim() === 'devwhatsappsell@gmail.com') ||
+      (auth.currentUser?.email?.toLowerCase().trim() === 'praveen@gmail.com') ||
+      (user?.email?.toLowerCase().trim() === 'praveen@gmail.com');
 
     const newProduct: Product = {
       ...productData,
@@ -649,7 +669,7 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       likes: 0,
       likedBy: [],
       featured: false,
-      approved: isUserAdmin ? true : false, // Auto-approve admin uploads, otherwise pending first
+      approved: isUserAdminOrSeller ? true : false, // Auto-approve admin or seller uploads, otherwise pending first
       createdAt: new Date().toISOString()
     };
 
