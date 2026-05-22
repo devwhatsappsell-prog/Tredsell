@@ -72,8 +72,8 @@ export const ProductSection: React.FC = () => {
     window.open(waUrl, '_blank');
   };
 
-  // Filtered approved products
-  const liveApprovedProducts = products.filter(p => p.approved);
+  // Filtered approved products (or uploaded by the current logged-in user themselves)
+  const liveApprovedProducts = products.filter(p => p.approved || (user && p.sellerId === user.uid));
 
   // Generate unique categories dynamically from approved products
   const dynamicCategories = React.useMemo(() => {
@@ -224,7 +224,7 @@ export const ProductSection: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
             {filteredProducts.map(product => {
-              const userHasLiked = user && product.likedBy.includes(user.uid);
+              const userHasLiked = user && Array.isArray(product.likedBy) && product.likedBy.includes(user.uid);
               const isOut = product.quantity === 0;
               const isLow = product.quantity > 0 && product.quantity <= 5;
 
@@ -246,8 +246,12 @@ export const ProductSection: React.FC = () => {
                       className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-102 transition-all duration-500"
                     />
 
-                    {/* Stock Tags */}
-                    {isOut ? (
+                    {/* Stock Tags or Pending Status */}
+                    {!product.approved ? (
+                      <div className="absolute top-3 left-3 bg-amber-500 text-white text-[8.5px] font-black px-2 py-1 uppercase tracking-wider animate-pulse z-15 shadow-md">
+                        ⏳ Pending Approval
+                      </div>
+                    ) : isOut ? (
                       <div className="absolute top-3 left-3 bg-black text-white text-[8px] font-black px-2 py-1 uppercase tracking-widest">
                         Sold Out
                       </div>
@@ -416,9 +420,9 @@ export const ProductSection: React.FC = () => {
                       e.stopPropagation();
                       likeProduct(activeLightboxProduct.id);
                     }}
-                    className={`px-4 py-3 border flex items-center justify-center space-x-1 hover:border-black transition-colors ${user && activeLightboxProduct.likedBy.includes(user.uid) ? 'text-red-600 border-red-200 bg-red-50/20' : 'text-zinc-500 border-zinc-200'}`}
+                    className={`px-4 py-3 border flex items-center justify-center space-x-1 hover:border-black transition-colors ${user && Array.isArray(activeLightboxProduct.likedBy) && activeLightboxProduct.likedBy.includes(user.uid) ? 'text-red-600 border-red-200 bg-red-50/20' : 'text-zinc-500 border-zinc-200'}`}
                   >
-                    <Heart className="w-4 h-4" fill={user && activeLightboxProduct.likedBy.includes(user.uid) ? 'currentColor' : 'none'} />
+                    <Heart className="w-4 h-4" fill={user && Array.isArray(activeLightboxProduct.likedBy) && activeLightboxProduct.likedBy.includes(user.uid) ? 'currentColor' : 'none'} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">{activeLightboxProduct.likes} Likes</span>
                   </button>
                 </div>

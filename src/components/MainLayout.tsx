@@ -91,6 +91,16 @@ export const MainLayout: React.FC = () => {
               Shop
             </button>
             
+            <button 
+              onClick={() => {
+                if (!user) setAuthModalOpen(true);
+                else setActiveView('profile');
+              }} 
+              className={`hover:text-black transition-colors ${activeView === 'profile' ? 'text-red-600 border-b-2 border-red-600 pb-1 mt-1 font-black' : ''}`}
+            >
+              My Account / मेरा अकाउंट
+            </button>
+            
             {userProfile?.role === 'admin' && (
               <button 
                 onClick={() => setActiveView('admin')} 
@@ -137,24 +147,26 @@ export const MainLayout: React.FC = () => {
             <div className="flex items-center space-x-3.5">
               <div 
                 onClick={() => setActiveView('profile')}
-                className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs font-black cursor-pointer uppercase select-none ring-2 ring-zinc-100 shadow-sm"
+                className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs font-black cursor-pointer uppercase select-none ring-2 ring-zinc-100 shadow-sm hover:scale-105 transition-transform"
                 title="Account Settings"
               >
                 {userProfile?.name ? userProfile.name.slice(0, 2) : 'ME'}
               </div>
               <button 
                 onClick={logout} 
-                className="text-[10px] font-bold uppercase text-zinc-400 hover:text-black hover:underline"
+                className="text-[10px] font-black uppercase text-red-605 bg-red-50 hover:bg-red-600 hover:text-white px-3 py-1.5 border border-red-100 hover:border-red-600 transition-colors cursor-pointer rounded-sm"
+                title="Sign Out"
               >
-                Logout
+                Logout / लॉगआउट
               </button>
             </div>
           ) : (
             <button 
               onClick={() => setAuthModalOpen(true)}
-              className="text-xs font-black uppercase tracking-widest border border-zinc-200 px-4 py-2 hover:border-black hover:bg-zinc-50 transition-all shadow"
+              className="text-xs font-black uppercase tracking-widest border-2 border-black bg-black text-white px-4 py-2 hover:bg-zinc-900 transition-all shadow cursor-pointer flex items-center space-x-1"
             >
-              Login
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>Login / लॉगइन</span>
             </button>
           )}
 
@@ -284,21 +296,33 @@ export const MainLayout: React.FC = () => {
         {/* VIEW C: DETAILED ACCOUNT PORTAL FOR USER */}
         {activeView === 'profile' && (
           <div className="max-w-2xl mx-auto px-6 py-12">
-            <div className="bg-white border border-zinc-200 p-6 md:p-8">
+            <div className="bg-white border border-zinc-200 p-6 md:p-8 animate-fade-in">
               
-              <div className="flex items-center space-x-5 border-b border-zinc-100 pb-6 mb-6">
-                <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-xl font-black uppercase">
-                  {userProfile?.name ? userProfile.name.slice(0, 2) : 'TS'}
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-xl font-bold font-display uppercase">{userProfile?.name || 'Local Seller'}</h3>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-red-600 bg-red-50 py-0.5 px-2 rounded-full">
-                      {userProfile?.role || 'user'}
-                    </span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-6 mb-6 gap-4">
+                <div className="flex items-center space-x-5">
+                  <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-xl font-black uppercase">
+                    {userProfile?.name ? userProfile.name.slice(0, 2) : 'TS'}
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">{userProfile?.email || 'unregistered@trendsell.com'}</p>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-xl font-bold font-display uppercase">{userProfile?.name || 'Local Seller'}</h3>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-red-600 bg-red-50 py-0.5 px-2 rounded-full">
+                        {userProfile?.role || 'user'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-1">{userProfile?.email || 'unregistered@trendsell.com'}</p>
+                  </div>
                 </div>
+                
+                <button
+                  onClick={() => {
+                    logout();
+                    setActiveView('home');
+                  }}
+                  className="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white border border-red-255 hover:border-red-650 px-4 py-2.5 text-xs font-black uppercase tracking-widest transition-all text-center self-start sm:self-center"
+                >
+                  Logout (लॉगआउट) / Sign Out
+                </button>
               </div>
 
               {/* User Listings Statistics Summary */}
@@ -456,7 +480,9 @@ export const MainLayout: React.FC = () => {
           className={`flex flex-col items-center flex-1 py-1.5 transition-colors ${activeView === 'profile' ? 'text-red-600 font-extrabold' : 'text-zinc-500'}`}
         >
           <UserIcon className="w-5 h-5 mb-0.5" />
-          <span className="text-[9px] font-black uppercase tracking-wider">Account</span>
+          <span className="text-[9px] font-black uppercase tracking-wider text-center block">
+            {user ? 'Account / अकाउंट' : 'Login / लॉगइन'}
+          </span>
         </button>
 
       </div>

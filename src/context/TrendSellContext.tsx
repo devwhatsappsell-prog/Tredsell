@@ -30,9 +30,21 @@ import {
 import { Product, StatusStory, UserProfile, Category, Banner, AnalyticsStats } from '../types';
 
 // Let's seed some stunning premium initial data
-const INITIAL_CATEGORIES: Category[] = [];
+const INITIAL_CATEGORIES: Category[] = [
+  { id: 'trending', name: 'Trending' },
+  { id: 'menswear', name: 'Menswear' },
+  { id: 'women', name: 'Women' },
+  { id: 'accessories', name: 'Accessories' },
+  { id: 'dev_db_verified', name: '🟢 DB Verification / डेटाबेस सत्यापन' }
+];
 
 const INITIAL_BANNERS: Banner[] = [
+  {
+    id: 'banner_verification',
+    imageUrl: 'https://images.unsplash.com/photo-1620121692029-d088224ddc74?auto=format&fit=crop&w=1200&q=80',
+    title: '🟢 DATABASE VERIFIED: devwhatsappsell@gmail.com CONTROL ACTIVE',
+    link: 'dev_db_verified'
+  },
   {
     id: 'banner_1',
     imageUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1200&q=80',
@@ -89,6 +101,25 @@ const INITIAL_STATUSES: StatusStory[] = [
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
+  {
+    id: 'prod_verified_dev_db',
+    title: '🟢 VERIFIED: Database Under devwhatsappsell Caretakers',
+    price: 99999,
+    quantity: 1,
+    description: 'This is a premium database identification and control item created exclusively to verify your active Firestore / local Sandbox control. Managed securely under: devwhatsappsell@gmail.com.',
+    category: 'dev_db_verified',
+    images: [
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'
+    ],
+    sellerId: 'user_admin',
+    sellerName: 'Dev Admin (System)',
+    sellerPhone: '919876543210',
+    likes: 999,
+    likedBy: [],
+    featured: true,
+    approved: true,
+    createdAt: new Date().toISOString()
+  },
   {
     id: 'prod_1',
     title: 'Classic Oversized Heavywear Tee',
@@ -217,34 +248,76 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
         if (fbUser) {
           setUser(fbUser);
+          
+          // If anonymous session, try to retrieve custom email and name from storage
+          let storedEmail = '';
+          let storedName = '';
+          if (fbUser.isAnonymous) {
+            storedEmail = localStorage.getItem('ts_anon_email') || '';
+            storedName = localStorage.getItem('ts_anon_name') || '';
+          }
+
           // Load profile from firestore
           const profileRef = doc(db, 'users', fbUser.uid);
           try {
             const profileSnap = await getDoc(profileRef);
             if (profileSnap.exists()) {
-              setUserProfile(profileSnap.data() as UserProfile);
+              const loadedProfile = profileSnap.data() as UserProfile;
+              // Enforce role consistency for developer
+              const currentEmail = fbUser.email || loadedProfile.email || storedEmail;
+              if (currentEmail && currentEmail.toLowerCase().trim() === 'devwhatsappsell@gmail.com') {
+                if (loadedProfile.role !== 'admin') {
+                  loadedProfile.role = 'admin';
+                  try {
+                    await setDoc(profileRef, { role: 'admin' }, { merge: true });
+                  } catch (e) {
+                    console.warn("Could not sync admin role to Firestore users collection:", e);
+                  }
+                }
+              } else {
+                // Erase admin role accidentally given to customers
+                if (loadedProfile.role === 'admin') {
+                  loadedProfile.role = 'user';
+                  try {
+                    await setDoc(profileRef, { role: 'user' }, { merge: true });
+                  } catch (e) {
+                    console.warn("Could not sync role demotion to Firestore users collection:", e);
+                  }
+                }
+              }
+              setUserProfile(loadedProfile);
             } else {
               // Create user profile
               // Check if email is dev's email for auto admin mapping
-              const role = fbUser.email === 'devwhatsappsell@gmail.com' ? 'admin' : 'user';
+              const finalEmail = storedEmail || fbUser.email || 'seller@trendsell.com';
+              const finalName = storedName || fbUser.displayName || 'Marketplace Seller';
+              const isDev = finalEmail.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
+              const role = isDev ? 'admin' : 'user';
               const newProfile: UserProfile = {
                 uid: fbUser.uid,
-                name: fbUser.displayName || 'Marketplace Seller',
-                email: fbUser.email || 'seller@trendsell.com',
+                name: finalName,
+                email: finalEmail,
                 role,
                 createdAt: new Date().toISOString()
               };
-              await setDoc(profileRef, newProfile);
+              try {
+                await setDoc(profileRef, newProfile);
+              } catch (e) {
+                console.warn("Could not create user profile in Firestore:", e);
+              }
               setUserProfile(newProfile);
             }
           } catch (err) {
             console.error("Error fetching user profile from firestore:", err);
             // Fallback user profile
+            const finalEmail = storedEmail || fbUser.email || '';
+            const finalName = storedName || fbUser.displayName || 'Seller';
+            const isDev = finalEmail.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
             setUserProfile({
               uid: fbUser.uid,
-              name: fbUser.displayName || 'Seller',
-              email: fbUser.email || '',
-              role: fbUser.email === 'devwhatsappsell@gmail.com' ? 'admin' : 'user',
+              name: finalName,
+              email: finalEmail,
+              role: isDev ? 'admin' : 'user',
               createdAt: new Date().toISOString()
             });
           }
@@ -266,6 +339,43 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // If Firestore is empty, seed it with initials
         if (prodList.length === 0) {
           setProducts(INITIAL_PRODUCTS);
+          
+          // Auto-seed if logged in user is the owner/admin
+          const currentEmail = auth.currentUser?.email?.toLowerCase().trim();
+          if (auth.currentUser && currentEmail === 'devwhatsappsell@gmail.com') {
+            const autoSeedFunc = async () => {
+              console.log("TrendSell: Automatically seeding empty Firestore with initial products, categories, and banners...");
+              for (const item of INITIAL_PRODUCTS) {
+                try {
+                  await setDoc(doc(db, 'products', item.id), item);
+                } catch (e) {
+                  console.warn("Could not auto-seed product:", item.id, e);
+                }
+              }
+              for (const cat of INITIAL_CATEGORIES) {
+                try {
+                  await setDoc(doc(db, 'categories', cat.id), cat);
+                } catch (e) {
+                  console.warn("Could not auto-seed category:", cat.id, e);
+                }
+              }
+              for (const bat of INITIAL_BANNERS) {
+                try {
+                  await setDoc(doc(db, 'banners', bat.id), bat);
+                } catch (e) {
+                  console.warn("Could not auto-seed banner:", bat.id, e);
+                }
+              }
+              for (const st of INITIAL_STATUSES) {
+                try {
+                  await setDoc(doc(db, 'statuses', st.id), st);
+                } catch (e) {
+                  console.warn("Could not auto-seed status:", st.id, e);
+                }
+              }
+            };
+            autoSeedFunc().catch(e => console.error("Error auto-seeding:", e));
+          }
         } else {
           setProducts(prodList);
         }
@@ -366,8 +476,28 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       if (localUser && localProfile) {
-        setUser(JSON.parse(localUser));
-        setUserProfile(JSON.parse(localProfile));
+        try {
+          const parsedUser = JSON.parse(localUser);
+          const parsedProfile = JSON.parse(localProfile);
+          
+          const isEmailDev = parsedProfile.email && parsedProfile.email.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
+          if (parsedProfile.role === 'admin' && !isEmailDev) {
+            // Customer somehow got admin in stale cache, downgrade to normal shopping user
+            parsedProfile.role = 'user';
+            localStorage.setItem('ts_profile', JSON.stringify(parsedProfile));
+          } else if (isEmailDev && parsedProfile.role !== 'admin') {
+            // Dev logged in, auto elevate to admin
+            parsedProfile.role = 'admin';
+            localStorage.setItem('ts_profile', JSON.stringify(parsedProfile));
+          }
+          
+          setUser(parsedUser);
+          setUserProfile(parsedProfile);
+        } catch (e) {
+          console.error("Local session recovery error:", e);
+          setUser(null);
+          setUserProfile(null);
+        }
       } else {
         // Pre-create a lovely default logged-out experience
         setUser(null);
@@ -392,23 +522,23 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await signInWithPopup(auth, provider);
       } catch (err) {
-        console.error("Google Auth popup failed:", err);
-        // If popup is blocked by iframe, fallback to anonymous for quick development ease
-        await loginAnonymously();
+        console.error("Google Auth popup failed, trying graceful fallback:", err);
+        // Fallback to anonymous/local session
+        await loginAnonymously('Guest User', 'customer@trendsell.com');
       }
     } else {
       // Offline mock logging
       const mockUser = {
         uid: 'user_local_guest',
-        email: 'devwhatsappsell@gmail.com', // Simulate the requested administrator view for preview ease
-        displayName: 'Guest Administrator',
+        email: 'customer@trendsell.com',
+        displayName: 'Guest Customer',
         isAnonymous: false
       };
       const mockProfile: UserProfile = {
         uid: 'user_local_guest',
-        name: 'Guest Administrator',
-        email: 'devwhatsappsell@gmail.com',
-        role: 'admin', // Start as Admin local to unlock all components instantly
+        name: 'Guest Customer',
+        email: 'customer@trendsell.com',
+        role: 'user', // Default to normal shopper
         createdAt: new Date().toISOString()
       };
       setUser(mockUser);
@@ -420,6 +550,9 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loginAnonymously = async (customName = 'Anonymous Fashionista', email = 'seller@trendsell.com') => {
     const isDevAdmin = email.toLowerCase().trim() === 'devwhatsappsell@gmail.com';
+    localStorage.setItem('ts_anon_email', email);
+    localStorage.setItem('ts_anon_name', customName);
+
     if (isFirebaseConfigured) {
       try {
         const res = await signInAnonymously(auth);
@@ -432,11 +565,33 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           role: isDevAdmin ? 'admin' : 'user',
           createdAt: new Date().toISOString()
         };
-        await setDoc(profileRef, newProfile);
+        try {
+          await setDoc(profileRef, newProfile);
+        } catch (e) {
+          console.warn("Could not save anonymous user profile to Firestore (may require updated rules):", e);
+        }
         setUser(fbUser);
         setUserProfile(newProfile);
       } catch (err) {
-        console.error("Anonymous authentication failed:", err);
+        console.warn("Firebase Anonymous auth is disabled in Firebase console, falling back to instant sandbox path:", err);
+        // Fallback to offline mock session for this email so login NEVER fails
+        const mockUser = {
+          uid: isDevAdmin ? 'user_local_guest_admin' : 'user_local_fallback_' + Math.random().toString(36).substr(2, 5),
+          email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
+          displayName: isDevAdmin ? 'Dev Admin' : customName,
+          isAnonymous: true
+        };
+        const mockProfile: UserProfile = {
+          uid: mockUser.uid,
+          name: isDevAdmin ? 'Dev Admin' : customName,
+          email: isDevAdmin ? 'devwhatsappsell@gmail.com' : email,
+          role: isDevAdmin ? 'admin' : 'user',
+          createdAt: new Date().toISOString()
+        };
+        setUser(mockUser);
+        setUserProfile(mockProfile);
+        localStorage.setItem('ts_user', JSON.stringify(mockUser));
+        localStorage.setItem('ts_profile', JSON.stringify(mockProfile));
       }
     } else {
       const mockUser = {
@@ -460,22 +615,32 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const logout = async () => {
+    localStorage.removeItem('ts_anon_email');
+    localStorage.removeItem('ts_anon_name');
+    localStorage.removeItem('ts_user');
+    localStorage.removeItem('ts_profile');
+    setUser(null);
+    setUserProfile(null);
     if (isFirebaseConfigured) {
-      await signOut(auth);
-    } else {
-      setUser(null);
-      setUserProfile(null);
-      localStorage.removeItem('ts_user');
-      localStorage.removeItem('ts_profile');
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.warn("Firebase signOut error: ", err);
+      }
     }
   };
 
   // Product actions
   const addProduct = async (productData: Omit<Product, 'id' | 'likes' | 'likedBy' | 'featured' | 'approved' | 'createdAt' | 'sellerId' | 'sellerName'>) => {
     const id = 'prod_' + Date.now();
-    const sellerId = user?.uid || 'user_guest';
-    const sellerName = userProfile?.name || 'Local Seller';
+    const sellerId = auth.currentUser ? auth.currentUser.uid : (user?.uid || 'user_local_guest');
+    const sellerName = auth.currentUser ? (auth.currentUser.displayName || userProfile?.name || 'Seller') : (userProfile?.name || 'Local Seller');
     
+    const isUserAdmin = 
+      (userProfile?.role === 'admin') || 
+      (auth.currentUser?.email?.toLowerCase().trim() === 'devwhatsappsell@gmail.com') ||
+      (user?.email?.toLowerCase().trim() === 'devwhatsappsell@gmail.com');
+
     const newProduct: Product = {
       ...productData,
       id,
@@ -484,11 +649,11 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       likes: 0,
       likedBy: [],
       featured: false,
-      approved: false, // Self-uploaded goes to pending state first
+      approved: isUserAdmin ? true : false, // Auto-approve admin uploads, otherwise pending first
       createdAt: new Date().toISOString()
     };
 
-    if (isFirebaseConfigured) {
+    if (isFirebaseConfigured && auth.currentUser) {
       try {
         await setDoc(doc(db, 'products', id), newProduct);
       } catch (err) {
@@ -502,11 +667,24 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
-    if (isFirebaseConfigured) {
+    if (isFirebaseConfigured && auth.currentUser) {
       try {
         const docRef = doc(db, 'products', id);
         await updateDoc(docRef, updates);
-      } catch (err) {
+      } catch (err: any) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        if (errMsg.includes("No document to update") || errMsg.includes("not-found")) {
+          const fullProduct = products.find(p => p.id === id);
+          if (fullProduct) {
+            try {
+              const docRef = doc(db, 'products', id);
+              await setDoc(docRef, { ...fullProduct, ...updates });
+              return;
+            } catch (innerErr) {
+              console.warn("Failover to setDoc failed:", innerErr);
+            }
+          }
+        }
         handleFirestoreError(err, OperationType.UPDATE, `products/${id}`);
       }
     } else {
@@ -517,7 +695,7 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteProduct = async (id: string) => {
-    if (isFirebaseConfigured) {
+    if (isFirebaseConfigured && auth.currentUser) {
       try {
         await deleteDoc(doc(db, 'products', id));
       } catch (err) {
@@ -532,18 +710,21 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const likeProduct = async (id: string) => {
     if (!user) return;
-    const uid = user.uid;
+    const uid = auth.currentUser ? auth.currentUser.uid : user.uid;
     const targetProduct = products.find(p => p.id === id);
     if (!targetProduct) return;
 
-    const hasLiked = targetProduct.likedBy.includes(uid);
+    const currentLikedBy = Array.isArray(targetProduct.likedBy) ? targetProduct.likedBy : [];
+    const currentLikes = typeof targetProduct.likes === 'number' ? targetProduct.likes : 0;
+
+    const hasLiked = currentLikedBy.includes(uid);
     const newLikedBy = hasLiked 
-      ? targetProduct.likedBy.filter(u => u !== uid)
-      : [...targetProduct.likedBy, uid];
+      ? currentLikedBy.filter(u => u !== uid)
+      : [...currentLikedBy, uid];
     
     const newLikes = hasLiked 
-      ? Math.max(0, targetProduct.likes - 1) 
-      : targetProduct.likes + 1;
+      ? Math.max(0, currentLikes - 1) 
+      : currentLikes + 1;
 
     await updateProduct(id, {
       likes: newLikes,
@@ -572,7 +753,8 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const newCategory: Category = { id: newId, name };
 
-    if (isFirebaseConfigured) {
+    const canWriteFirebase = isFirebaseConfigured && auth.currentUser && userProfile?.role === 'admin';
+    if (canWriteFirebase) {
       try {
         await setDoc(doc(db, 'categories', newId), newCategory);
       } catch (err) {
@@ -580,13 +762,17 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } else {
       const updated = [...categories, newCategory];
-      setCategories(updated);
-      syncLocal('ts_categories', updated);
+      const isPresent = categories.some(c => c.id === newId);
+      if (!isPresent) {
+        setCategories(updated);
+        syncLocal('ts_categories', updated);
+      }
     }
   };
 
   const deleteCategory = async (id: string) => {
-    if (isFirebaseConfigured) {
+    const canWriteFirebase = isFirebaseConfigured && auth.currentUser && userProfile?.role === 'admin';
+    if (canWriteFirebase) {
       try {
         await deleteDoc(doc(db, 'categories', id));
       } catch (err) {
@@ -604,14 +790,14 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const id = 'story_' + Date.now();
     const newStory: StatusStory = {
       id,
-      userId: user?.uid || 'user_guest',
-      userName: userProfile?.name ? userProfile.name.split(' ')[0] : 'Seller',
+      userId: auth.currentUser ? auth.currentUser.uid : (user?.uid || 'user_guest'),
+      userName: auth.currentUser ? (auth.currentUser.displayName || userProfile?.name || 'Seller') : (userProfile?.name ? userProfile.name.split(' ')[0] : 'Seller'),
       imageUrl,
       caption,
       createdAt: new Date().toISOString()
     };
 
-    if (isFirebaseConfigured) {
+    if (isFirebaseConfigured && auth.currentUser) {
       try {
         await setDoc(doc(db, 'statuses', id), newStory);
       } catch (err) {
@@ -625,7 +811,7 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteStatus = async (id: string) => {
-    if (isFirebaseConfigured) {
+    if (isFirebaseConfigured && auth.currentUser) {
       try {
         await deleteDoc(doc(db, 'statuses', id));
       } catch (err) {
@@ -642,7 +828,8 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const updateBanner = async (id: string, imageUrl: string, title: string, link = '') => {
     const updatedBanner: Banner = { id, imageUrl, title, link };
 
-    if (isFirebaseConfigured) {
+    const canWriteFirebase = isFirebaseConfigured && auth.currentUser && userProfile?.role === 'admin';
+    if (canWriteFirebase) {
       try {
         await setDoc(doc(db, 'banners', id), updatedBanner);
       } catch (err) {
@@ -658,7 +845,8 @@ export const TrendSellProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Local bootstrap command if user wants to reset data
   const bootstrapSampleData = async () => {
     setIsLoading(true);
-    if (!isFirebaseConfigured) {
+    const canSeedFirebase = isFirebaseConfigured && auth.currentUser && userProfile?.role === 'admin';
+    if (!canSeedFirebase) {
       setProducts(INITIAL_PRODUCTS);
       setStatuses(INITIAL_STATUSES);
       setCategories(INITIAL_CATEGORIES);

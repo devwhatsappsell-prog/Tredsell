@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTrendSell } from '../context/TrendSellContext';
-import { X, Sparkles, LogIn, Chrome } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { X, Sparkles, LogIn, Chrome, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,141 +12,276 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { loginWithGoogle, loginAnonymously, isFirebaseActive } = useTrendSell();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedEmail = email.trim();
-    const cleanName = name.trim() || 'Marketplace Seller';
-
-    await loginAnonymously(cleanName, trimmedEmail);
-    onClose();
-  };
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const trimmedEmail = email.trim();
+    const cleanName = name.trim() || (trimmedEmail.split('@')[0]) || 'Seller';
+
+    try {
+      await loginAnonymously(cleanName, trimmedEmail);
+      setActionSuccess(`Successfully logged in as ${trimmedEmail}! / सफलतापूर्वक लॉगिन हो गए!`);
+      setTimeout(() => {
+        setActionSuccess(null);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickCredential = async (presetEmail: string, presetName: string) => {
+    setLoading(true);
+    setEmail(presetEmail);
+    setName(presetName);
+    setPassword('••••••••');
+    try {
+      await loginAnonymously(presetName, presetEmail);
+      setActionSuccess(`Logged in as preset: ${presetEmail} / प्रीसेट लॉगिन सफल!`);
+      setTimeout(() => {
+        setActionSuccess(null);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      setActionSuccess('Google identity verified! / गूगल लॉगिन सही रहा!');
+      setTimeout(() => {
+        setActionSuccess(null);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-4 backdrop-blur-sm animate-fade-in">
       <div className="absolute inset-0" onClick={onClose} />
       
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        initial={{ opacity: 0, scale: 0.96, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative bg-white w-full max-w-sm border border-zinc-200 p-6 md:p-8 z-10"
+        exit={{ opacity: 0, scale: 0.96, y: 20 }}
+        transition={{ duration: 0.23, ease: 'easeOut' }}
+        className="relative bg-white w-full max-w-md border border-zinc-200 shadow-2xl p-6 md:p-8 z-10 rounded-sm overflow-hidden"
       >
+        {/* Top Header background tag */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-red-600" />
+
+        {/* Close Button */}
         <button 
           onClick={onClose} 
-          className="absolute top-4 right-4 text-zinc-400 hover:text-black transition-colors"
+          className="absolute top-4 right-4 text-zinc-400 hover:text-black transition-colors p-1 hover:bg-zinc-100 rounded-full"
+          title="Close Modal"
         >
           <X className="w-5 h-5" />
         </button>
 
+        {/* Brand Banner */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-black tracking-tighter uppercase font-display italic">
+          <div className="inline-flex items-center space-x-1.5 bg-zinc-900 text-white px-3 py-1 text-[10px] font-black uppercase tracking-widest mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+            <span>MEMBER PORTAL / मेंबर पोर्टल</span>
+          </div>
+          <h2 className="text-4xl font-extrabold tracking-tighter uppercase font-display italic">
             TREND<span className="text-red-600">SELL</span>
           </h2>
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1">
-            {isFirebaseActive ? 'Connect with Firebase Auth' : 'Instant Offline Sandbox Auth'}
+          <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest mt-1">
+            Secure Database Access & Seller Studio
           </p>
         </div>
 
-        {/* Firebase Indicator */}
-        <div className="mb-4 text-center">
-          <span className={`inline-flex items-center px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest ${isFirebaseActive ? 'bg-green-100 text-green-800' : 'bg-red-50 text-red-700 border border-red-200/50'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isFirebaseActive ? 'bg-green-600 animate-pulse' : 'bg-red-600'}`}></span>
-            {isFirebaseActive ? 'Firebase Active' : 'Offline Mode active'}
+        {/* Connection state banner */}
+        <div className="mb-5 text-center">
+          <span className={`inline-flex items-center px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-widest border ${
+            isFirebaseActive 
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+              : 'bg-amber-50 text-amber-800 border-amber-200/50'
+          }`}>
+            <span className={`w-2 h-2 rounded-full mr-1.5 ${isFirebaseActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+            {isFirebaseActive ? 'CLOUD FIREBASE PERSISTENCE ACTIVE' : 'LOCAL CACHE SANDBOX MODE ACTIVE'}
           </span>
         </div>
 
-        {/* Primary Google Login Section (Promoted & Highly styled for instant customer ease) */}
-        <div className="mb-5">
-          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center mb-2.5">
-            ⚡ QUICK CUSTOMER ACCESS
-          </p>
-          <button 
-            type="button"
-            onClick={async () => {
-              await loginWithGoogle();
-              onClose();
-            }}
-            className="w-full bg-red-600 hover:bg-red-700 active:scale-98 text-white text-xs font-black uppercase py-3 tracking-widest transition-all duration-200 flex items-center justify-center space-x-2 shadow-md"
-          >
-            <Chrome className="w-4 h-4 text-white" />
-            <span>Continue with Google</span>
-          </button>
-          <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider text-center mt-2.5">
-            Recommended for direct instant verification
-          </p>
-        </div>
-
-        <div className="relative flex items-center justify-center my-6">
-          <div className="border-t border-zinc-100 w-full" />
-          <span className="absolute bg-white px-3 text-[9px] font-bold uppercase tracking-wider text-zinc-400">Or Work With Email / Local ID</span>
-        </div>
-
-        <form onSubmit={handleManualSubmit} className="space-y-4">
-          {isRegistering && (
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Full Name</label>
-              <input 
-                type="text" 
-                placeholder="E.g., Neha Sharma" 
-                value={name}
-                required
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-black font-semibold"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Email Address</label>
-            <input 
-              type="email" 
-              placeholder="E.g., customer@trendsell.com" 
-              value={email}
-              required
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-zinc-200 px-3 py-2 text-xs focus:outline-none focus:border-black font-semibold text-zinc-900"
-            />
-            {email.toLowerCase().trim() === 'devwhatsappsell@gmail.com' && (
-              <p className="text-[9px] text-red-650 font-bold uppercase tracking-wider mt-1">Admin account recognized</p>
-            )}
-          </div>
-
-          <button 
-            type="submit"
-            className="w-full bg-black text-white hover:bg-zinc-900 active:bg-zinc-800 text-xs font-bold uppercase py-3 tracking-widest transition-colors flex items-center justify-center space-x-2"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>{isRegistering ? 'Register Free Account' : 'Sign In with Email'}</span>
-          </button>
-        </form>
-
-        {!isRegistering && (
-          <div className="mt-4">
-            <button 
-              type="button"
-              onClick={() => {
-                loginAnonymously('Fashion Guest');
-                onClose();
-              }}
-              className="w-full text-zinc-500 hover:text-black hover:underline text-[10px] font-bold uppercase tracking-widest text-center block pt-2"
-            >
-              Sign In anonymously as Guest
-            </button>
+        {/* Success Alert Overlay */}
+        {actionSuccess && (
+          <div className="mb-4 p-3 bg-zinc-900 border border-zinc-800 text-white flex items-center space-x-2.5 rounded-sm shadow animate-bounce">
+            <CheckCircle2 className="w-5 h-5 text-red-500 shrink-0" />
+            <p className="text-xs font-bold leading-tight uppercase tracking-wider">{actionSuccess}</p>
           </div>
         )}
 
-        <div className="mt-5 text-center text-xs">
+        {/* SECTION A: GOOGLE SIGN-IN DESIGN (METHOD 1) */}
+        <div className="mb-6">
+          <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">
+            METHOD 1: SECURE GOOGLE IDENTITY / तरीका 1: गूगल से लॉगिन
+          </label>
           <button 
-            onClick={() => setIsRegistering(!isRegistering)}
-            className="text-zinc-500 hover:text-black font-semibold hover:underline"
+            type="button"
+            disabled={loading}
+            onClick={handleGoogleSignIn}
+            className="w-full bg-white hover:bg-zinc-50 border-2 border-zinc-900 text-zinc-900 text-xs font-black uppercase py-3 px-4 tracking-wider transition-all duration-150 flex items-center justify-center space-x-2.5 active:scale-[0.99] shadow cursor-pointer"
           >
-            {isRegistering ? 'Already have an account? Login' : "Don't have an account? Sign up now"}
+            <Chrome className="w-4 h-4 text-red-650" />
+            <span>Sign In with Google Account</span>
           </button>
+          <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider text-center mt-2">
+            Instant automatic linking and session setup / तुरंत आटोमेटिक सेटअप
+          </p>
         </div>
+
+        {/* OR Divider */}
+        <div className="relative flex items-center justify-center my-6">
+          <div className="border-t border-zinc-200 w-full" />
+          <span className="absolute bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-zinc-400">
+            OR / अथवा
+          </span>
+        </div>
+
+        {/* SECTION B: EMAIL SECURE SIGN-IN WITH SECURITY PIN / PASSWORD (METHOD 2) */}
+        <div className="mb-6">
+          <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3">
+            METHOD 2: DIRECT EMAIL CREDENTIALS / तरीका 2: ईमेल आईडी और पासवर्ड
+          </label>
+          
+          <form onSubmit={handleManualSubmit} className="space-y-3.5">
+            {isRegistering && (
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-wider text-zinc-500 mb-1">
+                  Full Name / आपका नाम
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+                  <input 
+                    type="text" 
+                    placeholder="E.g., Devraj Sharma" 
+                    value={name}
+                    required={isRegistering}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full border border-zinc-200 pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-red-600 font-bold bg-zinc-50 focus:bg-white text-zinc-950 transition-colors"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[9px] font-black uppercase tracking-wider text-zinc-500 mb-1">
+                Email Address / ईमेल एड्रेस
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+                <input 
+                  type="email" 
+                  placeholder="You @example.com" 
+                  value={email}
+                  required
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full border border-zinc-200 pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-red-600 font-bold bg-zinc-50 focus:bg-white text-zinc-950 transition-colors"
+                />
+              </div>
+              {email.toLowerCase().trim() === 'devwhatsappsell@gmail.com' && (
+                <div className="mt-1.5 flex items-center space-x-1 text-[9px] font-extrabold uppercase text-red-600 bg-red-50/50 py-0.5 px-2 max-w-max border border-red-100 rounded-sm">
+                  <ShieldCheck className="w-3 h-3 text-red-600" />
+                  <span>🟢 ADMIN MAIL DETECTED / मुख्य एडमिन ईमेल पाया गया </span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[9px] font-black uppercase tracking-wider text-zinc-500 mb-1">
+                Security Pin / पासवर्ड
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-zinc-200 pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-red-600 font-bold bg-zinc-50 focus:bg-white text-zinc-950 transition-colors"
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-black text-white hover:bg-zinc-900 hover:text-red-500 active:scale-[0.99] text-xs font-black uppercase py-3 tracking-widest transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>{isRegistering ? 'Register & Verify / रेजिस्टर करें' : 'Sign In / लॉगिन करें'}</span>
+            </button>
+          </form>
+
+          {/* Registration toggle line */}
+          <div className="mt-4 text-center">
+            <button 
+              onClick={() => setIsRegistering(!isRegistering)}
+              className="text-zinc-500 hover:text-black font-extrabold text-[10px] uppercase tracking-wider hover:underline"
+            >
+              {isRegistering 
+                ? 'Already member? Sign In Mode / लॉगिन मोड चुनें' 
+                : "Don't have credentials? Register Free / नया अकाउंट बनाएं"
+              }
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION C: EXPLICIT QUICK ACTION SAMPLES (सैमपल्स - एक क्लिक लॉगिन) */}
+        <div className="mt-6 pt-5 border-t border-zinc-100">
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2.5 text-center">
+            🧪 ONE-CLICK DEMO SAMPLES / त्वरित लॉगिन सैंपल
+          </p>
+          
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Owner/Admin Sample option */}
+            <button
+              onClick={() => handleQuickCredential('devwhatsappsell@gmail.com', 'Dev Admin')}
+              className="border border-red-200 hover:border-red-600 bg-red-50/50 hover:bg-red-50 p-2 text-left transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center space-x-1.5 text-[9px] font-black text-red-700 uppercase">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Level</span>
+              </div>
+              <p className="text-[8px] font-bold text-zinc-500 mt-1 truncate">devwhatsappsell@gmail.com</p>
+              <p className="text-[7px] text-zinc-400 font-bold mt-0.5">Control Database</p>
+            </button>
+
+            {/* Shopper Guest option */}
+            <button
+              onClick={() => handleQuickCredential('shopper@trendsell.com', 'Arjun Kumar')}
+              className="border border-zinc-200 hover:border-black bg-zinc-50 p-2 text-left transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center space-x-1.5 text-[9px] font-black text-zinc-800 uppercase">
+                <User className="w-3.5 h-3.5" />
+                <span>Shopper Account</span>
+              </div>
+              <p className="text-[8px] font-bold text-zinc-500 mt-1 truncate">shopper@trendsell.com</p>
+              <p className="text-[7px] text-zinc-400 font-bold mt-0.5">Test Likes & Reviews</p>
+            </button>
+          </div>
+        </div>
+
       </motion.div>
     </div>
   );

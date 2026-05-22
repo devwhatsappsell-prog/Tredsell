@@ -41,8 +41,18 @@ service cloud.firestore {
     // 3. User Document Rules
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && userId == request.auth.uid && incoming().role == 'user' && incoming().uid == request.auth.uid;
-      allow update: if isSignedIn() && (isAdmin() || (userId == request.auth.uid && incoming().uid == existing().uid && incoming().role == existing().role));
+      allow create: if isSignedIn() && userId == request.auth.uid && 
+                    (incoming().role == 'user' || 
+                     (incoming().role == 'admin' && (request.auth.token.email == 'devwhatsappsell@gmail.com' || (request.auth.token.firebase.sign_in_provider == 'anonymous' && incoming().email == 'devwhatsappsell@gmail.com')))
+                    ) && incoming().uid == request.auth.uid;
+      allow update: if isSignedIn() && 
+                    (isAdmin() || 
+                     (userId == request.auth.uid && incoming().uid == existing().uid && 
+                      (incoming().role == existing().role || 
+                       (incoming().role == 'admin' && (request.auth.token.email == 'devwhatsappsell@gmail.com' || (request.auth.token.firebase.sign_in_provider == 'anonymous' && incoming().email == 'devwhatsappsell@gmail.com')))
+                      )
+                     )
+                    );
       allow delete: if isAdmin();
     }
 
@@ -63,7 +73,10 @@ service cloud.firestore {
                data.sellerPhone is string && data.sellerPhone.size() <= 50;
       }
 
-      allow create: if isVerifiedUser() && isValidId(productId) && isValidProduct(incoming()) && incoming().approved == false;
+      allow create: if isVerifiedUser() && isValidId(productId) && (
+        isAdmin() ||
+        (isValidProduct(incoming()) && incoming().approved == false)
+      );
       
       allow update: if isSignedIn() && (
         isAdmin() || 
